@@ -34,7 +34,7 @@ public:
     bool send_cmd_all(const string &prefix, const string &cmd, int lineno);
 private:
     UdpSokcet *udp;
-    // seq -> message, 便于定位数据包
+    // seq -> message
     map<int, UdpMsg> network;
     int epoll_fd;
     bool is_direct;

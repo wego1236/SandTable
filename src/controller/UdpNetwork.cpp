@@ -15,11 +15,7 @@
 void UdpNetwork::run_epoll() {
     struct epoll_event events[max_events];
     int nfds, udp_fd = udp->socket();
-    
-    
-    // pair<int, int> conn_fds;
     char recv_buff[1472]; // MSS: 1500(MTU)-20(IP)-8(UDP)
-    // ssize_t num_read;
     while (true) {
         nfds = epoll_wait(epoll_fd, events, max_events, -1);
         if (nfds == -1) {
@@ -31,8 +27,8 @@ void UdpNetwork::run_epoll() {
                 throw_syserror("epoll_wait");
         }
         for (int n = 0; n < nfds; ++n) {
-            if (events[n].data.fd == udp_fd) { // udp 处理
-            // udp读取到信息进行转发 
+            if (events[n].data.fd == udp_fd) { // udp handling
+            // udp message resend
                 AcceptData* client = new AcceptData; 
                 wait_message(client, udp_fd, recv_buff); 
                 add_msg_to_net(*client, recv_buff);
@@ -44,7 +40,6 @@ void UdpNetwork::run_epoll() {
                 if (events[n].events & EPOLLIN) {
                     ssh_handle(ssh_fd);
                 }
-                // cout<<tcp_fd<<endl;
             }
         }
     }
@@ -54,23 +49,6 @@ void UdpNetwork::ssh_handle(int tcp_fd){
     struct sockaddr_in client_addr{};
     socklen_t length = sizeof(client_addr);
     int fd = accept(tcp_fd, (sockaddr *) &client_addr, &length);
-    // if (fd > 0) {
-    //     //设置响应事件,设置可读和边缘(ET)模式
-    //     //很多人会把可写事件(EPOLLOUT)也注册了,后面会解释
-    //     epev.events = EPOLLIN | EPOLLET;
-    //     epev.data.fd = fd;
-    //     //设置连接为非阻塞模式
-    //     int flags = fcntl(fd, F_GETFL, 0);
-    //     if (flags < 0) {
-    //         cout << "set no block error, fd:" << fd << endl;
-    //         continue;
-    //     }
-    //     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-    //         cout << "set no block error, fd:" << fd << endl;
-    //         continue;
-    //     }
-    //     //将新的连接添加到epoll中
-    // }
     string node_name = configFile.get_node_name_with_addr(client_addr);
     cerr_verbose << "Client " << configFile.get_node_name_with_addr(client_addr)
                      << " cmd fd: " << fd << endl;
@@ -86,15 +64,13 @@ UdpNetwork::UdpNetwork(UdpSokcet *udp_socket) : udp(udp_socket) {
     epoll_fd = epoll_create1(0);
     if (epoll_fd == -1)
         throw_syserror("epoll_create1");
-    // udp_socket 监听
+    // udp_socket listen
     add_monitor_fd(udp_socket->socket());
     // ssh port
 
     this->ssh_fd = ::socket(AF_INET, SOCK_STREAM, 0);
     if (this->ssh_fd == -1)
         throw_syserror("socket");
-    // if (set_nonblocking(tcp_fd) == -1)
-    //     throw_syserror("set_nonblocking");
     const int opt = 1;
     struct sockaddr_in bind_addr{};
     bind_addr.sin_family = AF_INET;
@@ -135,8 +111,6 @@ const struct sockaddr_in *destination){
 		//printf("destination-setsockopt IP_TRANSPARENT isOK...\n");
 	}
 	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof(flags));
-    // todo ???
-	// setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &flags, sizeof(flags)); 
 	if(bind (fd, (struct sockaddr *) source,sizeof(*source))==-1){
         cerr_warning <<"source-bind() error!"<<endl;
 		return -1;
@@ -183,9 +157,6 @@ int UdpNetwork::wait_message(AcceptData* ret, const int udp_socket, char *data) 
         // cerr_warning<< "no message"<<endl;
         return n;
 	}
-	// cerr_verbose_cont << " Get Message source "<< inet_ntoa(ret->client_addr.sin_addr)<<" :" << ntohs(ret->client_addr.sin_port);  
-    // cerr_detail_cont << " Get Message source "<< configFile.get_node_name_with_addr(ret->client_addr);  
-
     // memset(&destinationAddr,0,sizeof(struct sockaddr_in));
 	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg =CMSG_NXTHDR(&msg,cmsg)){
 	  if (cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type ==IP_RECVORIGADDRS){
@@ -197,13 +168,6 @@ int UdpNetwork::wait_message(AcceptData* ret, const int udp_socket, char *data) 
           
 
             cerr_detail_cont << data<<endl;
-        //   cerr_detail_cont << " destination" << configFile.get_node_name_with_addr(ret->masque_addr)<<endl;   
-        //   if (configFile.is_router_addr(ret->origin_addr)) {
-        //     cerr_detail_cont << endl;
-        //   } else {
-        //     cerr_detail_cont << " (origin: " << configFile.get_node_name_with_addr(ret->origin_addr) << ")" << endl;
-        //   }
-          // 这时候buf里面已经存有数据
           //send_to_transparenty(buf,n,&sourceAddr,&destinationAddr);
 		  //sendto(fd,buf,n,&sourceAddr,&destinationAddr);
           return n;
@@ -226,21 +190,6 @@ bool UdpNetwork::do_send(const uint32_t seq_num){
         return false;
     }
     UdpMsg msg = num_msg->second;
-    // if (configFile.is_router_addr(*msg.get_dst())) {
-    //     cerr_detail << "Transfer msg to router" << configFile.get_node_name_with_addr(*msg.get_src()) << " -> " << configFile.get_node_name_with_addr(*msg.get_dst())<<endl;
-    //     string node_name = configFile.get_node_name_with_addr(*msg.get_dst());
-    //     cerr_verbose << "Client " << configFile.get_node_name_with_addr(*msg.get_dst());
-        
-    //                  << " cmd fd: " << acc.socket_fd << endl;
-    //     acc.client_addr.sin_port = 0;
-    //     client_to_fd[acc.client_addr] = acc.socket_fd;
-    //     fd_to_client[acc.socket_fd] = acc.client_addr;
-    //     // add_monitor_fd(acc.socket_fd);
-    //     remote_control->add_node(configFile.get_node_name(acc.client_addr), acc.socket_fd);
-    //     // return {-2, -2};  // success, is router fd
-    //     network.erase(num_msg); 
-    //     return true;  
-    // }
     if(send_to_transparenty(msg.buffer(), msg.size(), msg.get_src(), msg.get_dst()) == -1){
                 throw_syserror("send transparently");
                 network.erase(num_msg); 
@@ -401,7 +350,6 @@ bool UdpNetwork::send_cmd(const string &node, const string &cmd, int lineno) {
             return false;
         }
         close(it->second);
-        // TODO: (bug) concurrent, should erase carefully
         fd_to_client.erase(it->second);
         client_to_fd.erase(it);
     }
