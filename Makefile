@@ -26,8 +26,17 @@ build-cpp-raft-driver:
 	cmake -B ${BUILD_DIR}/cmake-build-debug/drivers -S systems/WRaft-series/driver
 	cmake --build ${BUILD_DIR}/cmake-build-debug/drivers -j $(shell nproc)
 
+build-cpp-raft-rs-driver:
+	cmake -B ${BUILD_DIR}/cmake-build-debug/rsDriver -S systems/Raft-rs/driver
+	cmake --build ${BUILD_DIR}/cmake-build-debug/rsDriver -j $(shell nproc)
+
+
 build-cpp-raft-driver-in-docker:
 	docker exec controller bash -c "cd /root/sandtable && make build-cpp-raft-driver"
+
+build-cpp-raft-rs-driver-in-docker:
+	docker exec controller bash -c "cd /root/sandtable && make build-cpp-raft-rs-driver"
+
 
 config-network:
 	sudo scripts/batch_config_tproxy.sh -n 20 -b docker -c controller start

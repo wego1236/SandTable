@@ -3,7 +3,7 @@ FROM ubuntu:22.04 as base
 LABEL version="0.1" maintainer="Ruize Tang <1466040111@qq.com>"
 
 # basic packages for running the project
-RUN sed -E -i.orig 's,/[a-z]+\.ubuntu\.com,/mirrors.tuna.tsinghua.edu.cn,' /etc/apt/sources.list && \
+RUN sed -E -i.orig 's,/[a-z]+\.ubuntu\.com,/mirrors.nju.edu.cn,' /etc/apt/sources.list && \
     apt-get update && \
     apt-get install -y iproute2 iptables ssh dnsutils python3 python-is-python3 python3-pip openjdk-19-jre-headless
 
@@ -29,10 +29,13 @@ RUN apt-get install -y vim git wget curl sudo
 FROM tools as node
 RUN apt-get install -y libgflags2.2 libreadline8
 # Install python3.7 for RaftOS
-RUN sudo apt-get install -y software-properties-common
-RUN sudo add-apt-repository ppa:deadsnakes/ppa \
-    && sudo apt-get update \
-    && sudo apt-get install -y python3.7-venv
+# RUN sudo apt-get install -y software-properties-common
+# RUN sudo add-apt-repository ppa:deadsnakes/ppa \
+#     && sudo apt-get update \
+#     && sudo apt-get install -y python3.7-venv
+# RUN apt-get update && apt-get install -y curl build-essential
+# RUN curl -vvv -k --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# ENV PATH="/root/.cargo/bin:${PATH}"
 
 FROM tools as builder
 RUN apt-get install -y cmake build-essential libgflags-dev libreadline-dev libconcurrentqueue-dev
@@ -40,4 +43,7 @@ RUN apt-get install -y cmake build-essential libgflags-dev libreadline-dev libco
 FROM builder as controller
 RUN apt-get install -y lsof tmux jq
 COPY requirements.txt /requirements.txt
+RUN pip config set global.index-url https://mirror.nju.edu.cn/pypi/web/simple
 RUN pip install -r /requirements.txt && rm -f /requirements.txt
+
+COPY rustup-init.sh /rustup-init.sh

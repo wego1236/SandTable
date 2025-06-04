@@ -1,0 +1,33 @@
+[package]
+name = "rust_so"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[lib]
+name = "world"
+crate-type = ["cdylib"]
+
+[build-dependencies]
+cc = "1.0"
+libc = "0.2"
+
+[profile.dev]
+rpath = true
+
+[dependencies]
+clap = "2.33.0"
+raft = { path = "./raft-rs" }
+libc = "0.2"
+rand = "0.8"
+slog = "2.2"
+slog-envlogger = { version = "2.1.0", optional = true }
+slog-stdlog = { version = "4", optional = true }
+slog-term = { version = "2.6.0" }
+criterion = "0.3"
+regex = "1"
+slog-async = "2.1.0"
+protobuf = "2"
