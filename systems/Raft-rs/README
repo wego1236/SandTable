@@ -1,0 +1,8 @@
+需要下载rust编译环境
+```bash
+sudo apt-get install rustc cargo
+```
+运行命令
+```bash
+build-cpp-raft-rs-driver-in-docker
+```
